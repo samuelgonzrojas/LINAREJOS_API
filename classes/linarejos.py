@@ -12,17 +12,20 @@ load_dotenv()
 
 # urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
+# Configuración básica para que se muestre INFO y superiores
+logging.basicConfig(level=logging.INFO)
+
 
 class API_LINAREJOS:
-    def __init__(self, **kwargs):
-        self.HOST = os.getenv("LINAREJOS_HOST")
-        self.IP = os.getenv("LINAREJOS_IP")
-        self.PROTOCOL = os.getenv("LINAREJOS_PROTOCOL")
-        self.PORT = int(os.getenv("LINAREJOS_PORT"))
-        self.USERNAME = os.getenv("LINAREJOS_USERNAME")
-        self.PASSWORD = os.getenv("LINAREJOS_PASSWORD")
+    def __init__(self):
+        self.HOST = os.getenv("HOST_LINAREJOS")
+        self.IP = os.getenv("IP_LINAREJOS")
+        self.PROTOCOL = os.getenv("PROTOCOL_LINAREJOS")
+        self.PORT = int(os.getenv("PORT_LINAREJOS"))
+        self.USERNAME = os.getenv("USERNAME_LINAREJOS")
+        self.PASSWORD = os.getenv("PASSWORD_LINAREJOS")
         self.URL = f"{self.PROTOCOL}://{self.HOST}:{self.PORT}/apilinarejos"
-        self.wait = 25
+        self.wait = 35
 
 
 class LIN_DIAGNOSER(API_LINAREJOS):
@@ -47,7 +50,7 @@ class LIN_DIAGNOSER(API_LINAREJOS):
         }
 
     def get_oid(self, **kwargs):
-        logging.info(f"Solicitando OID para {self.PON}")
+        logging.info(f"OID - REQ - {self.PON}")
         oid_form = {
             "operacion": "exec",
             "usuario": self.USERNAME,
@@ -58,8 +61,6 @@ class LIN_DIAGNOSER(API_LINAREJOS):
         }
 
         if all(oid_form):
-            self.OID_date = datetime.now()
-
             json_data = json.dumps(oid_form).encode("utf-8")
             self.headers["Content-Length"] = f"{len(json_data)}"
 
@@ -74,7 +75,7 @@ class LIN_DIAGNOSER(API_LINAREJOS):
                 status_code = rsp.status_code
 
             except Exception as e:
-                logging.error(f"Error en peticion de OID para {self.PON}: {str(e)}")
+                logging.error(f"OID - ER_1 - {self.PON} - {str(e)}")
 
             # si rsp es OK, devuelve el OID
             if status_code == 200:
@@ -82,12 +83,14 @@ class LIN_DIAGNOSER(API_LINAREJOS):
                 if "oid" in rsp_json.keys():
                     self.OID = str(rsp_json["oid"])
                     self.KPI_date = datetime.now() + timedelta(seconds=self.wait)
-                    logging.info(f"OID obtenido para {self.PON}: {self.OID}")
+                    logging.info(f"OID - OK_1 - {self.PON}")
                 else:
-                    logging.error(f"OID no obtenido para PON: {self.PON}")
+                    logging.error(f"OID - ER_2 - {self.PON}")
+            else:
+                logging.error(f"OID - ER_3 - {self.PON}")
 
     def get_kpi(self):
-        logging.info(f"Solicitando KPI para {self.PON}")
+        logging.info(f"KPI - REQ - {self.PON}")
         kpi_form = {"operacion": "result", "oid": self.OID}
         json_data = json.dumps(kpi_form).encode("utf-8")
         try:
@@ -100,7 +103,7 @@ class LIN_DIAGNOSER(API_LINAREJOS):
             )
             status_code = rsp.status_code
         except Exception as e:
-            logging.error(f"Error en peticion de KPI para PON {self.PON}: {str(e)}")
+            logging.error(f"KPI - ER_1 - {self.PON} - {str(e)}")
 
         self.KPI_date = datetime.now()
 
@@ -110,13 +113,12 @@ class LIN_DIAGNOSER(API_LINAREJOS):
             # Si la operación ha devuelto lectura de KPI, aparece como "resultado"
             if "resultado" in rsp_json.keys():
                 self.KPI_RESPONSE = rsp_json.get("resultado")
+                logging.info(f"KPI - OK_1 - {self.PON}")
                 return self.KPI_RESPONSE
             # Si hubo algún error, aparece como "result"
             elif "result" in rsp_json.keys():
                 self.STATUS = rsp_json.get("result")
-                logging.error(f"KPI no obtenido para PON: {self.PON}, {self.STATUS}")
+                logging.error(f"KPI - ER_2 - {self.PON} - {self.STATUS}")
 
         else:
-            logging.error(
-                f"Error en petición de KPI para PON {self.PON}: {self.STATUS}"
-            )
+            logging.error(f"KPI - ER_3 {self.PON}: {self.STATUS}")
