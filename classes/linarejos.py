@@ -17,7 +17,11 @@ logging.basicConfig(level=logging.INFO)
 
 
 class API_LINAREJOS:
+<<<<<<< HEAD
     def __init__(self, **kwargs):
+=======
+    def __init__(self):
+>>>>>>> 47f36b81df5dde97c9d1b04f1a16fcc60aac5f85
         self.HOST = os.getenv("HOST_LINAREJOS")
         self.IP = os.getenv("IP_LINAREJOS")
         self.PROTOCOL = os.getenv("PROTOCOL_LINAREJOS")
